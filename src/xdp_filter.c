@@ -4,6 +4,7 @@
 #include <linux/if_ether.h>
 #include <linux/in.h>
 #include <linux/ip.h>
+#include <linux/ipv6.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
 
@@ -284,6 +285,34 @@ int xdp_ddos_filter(struct xdp_md *ctx) {
   struct ethhdr *eth = data;
   if ((void *)(eth + 1) > data_end)
     return XDP_PASS;
+
+  if (eth->h_proto == bpf_htons(ETH_P_IPV6)) {
+    struct ipv6hdr *ip6h = (struct ipv6hdr *)(eth + 1);
+    if ((void *)(ip6h + 1) > data_end)
+      return XDP_PASS;
+
+    void *l4_hdr6 = (void *)(ip6h + 1);
+    if (ip6h->nexthdr == IPPROTO_TCP) {
+      struct tcphdr *tcph = (struct tcphdr *)l4_hdr6;
+      if ((void *)(tcph + 1) > data_end)
+        return XDP_PASS;
+      if ((tcph->urg && tcph->psh && tcph->fin) ||
+          (!tcph->syn && !tcph->fin && !tcph->rst && !tcph->psh && !tcph->ack && !tcph->urg) ||
+          (tcph->syn && tcph->fin) || (tcph->syn && tcph->rst)) {
+        record_stat(STAT_TCP_INVALID);
+        return XDP_DROP;
+      }
+    } else if (ip6h->nexthdr == IPPROTO_UDP) {
+      struct udphdr *udph = (struct udphdr *)l4_hdr6;
+      if ((void *)(udph + 1) > data_end)
+        return XDP_PASS;
+      if (udph->source == 0 || udph->dest == 0) {
+        record_stat(STAT_UDP_INVALID);
+        return XDP_DROP;
+      }
+    }
+    return XDP_PASS;
+  }
 
   if (eth->h_proto != bpf_htons(ETH_P_IP))
     return XDP_PASS;
