@@ -74,11 +74,14 @@ func startAdaptiveRateLimiter(objs *XdpFilterObjects, baseRate uint32, baseUdp u
 			}
 
 			// 4. EWMA Logic for Global UDP
-			if udpDelta > 5000 {
-				targetUdp := float64(baseUdp) * 0.2
+			if udpDelta > 50000 {
+				targetUdp := float64(baseUdp) * 0.5
+				if targetUdp < 1000000 {
+					targetUdp = 1000000
+				}
 				currentUdp = (ewmaAlpha * targetUdp) + ((1 - ewmaAlpha) * currentUdp)
 				log.Printf("[EWMA] UDP Flood Detected! %d drops/sec. Compressing UDP Limit to %d PPS", udpDelta, uint32(currentUdp))
-			} else if udpDelta < 5000 && currentUdp < float64(baseUdp) {
+			} else if udpDelta < 50000 && currentUdp < float64(baseUdp) {
 				currentUdp += float64(baseUdp) * 0.05
 				if currentUdp > float64(baseUdp) {
 					currentUdp = float64(baseUdp)
