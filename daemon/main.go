@@ -30,7 +30,7 @@ func main() {
 	}
 	globalUdpPps, err := strconv.ParseUint(os.Getenv("GLOBAL_UDP_PPS"), 10, 32)
 	if err != nil || globalUdpPps == 0 {
-		globalUdpPps = 100000
+		globalUdpPps = 2000000
 	}
 
 	// Tune host kernel parameters (requires privileged: true)
@@ -253,8 +253,8 @@ func tuneSysctl() {
 		"/proc/sys/net/core/netdev_max_backlog":                        "10000",
 		"/proc/sys/net/netfilter/nf_conntrack_max":                     conntrackMax,
 		"/proc/sys/net/netfilter/nf_conntrack_tcp_timeout_established": "86400",
-		"/proc/sys/net/netfilter/nf_conntrack_udp_timeout":             "10",
-		"/proc/sys/net/netfilter/nf_conntrack_udp_timeout_stream":      "60",
+		"/proc/sys/net/netfilter/nf_conntrack_udp_timeout":             "30",
+		"/proc/sys/net/netfilter/nf_conntrack_udp_timeout_stream":      "300",
 		"/proc/sys/net/ipv4/tcp_fin_timeout":                           "15",
 		"/proc/sys/net/ipv4/tcp_tw_reuse":                              "1",
 		"/proc/sys/net/ipv4/tcp_synack_retries":                        "2",
